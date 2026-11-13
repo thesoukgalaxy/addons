@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Blockd: grid blockout for level design in Blender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&display=swap" rel="stylesheet">
+<style>
+  /* ---- Store system: the same for every add-on ---- */
+  :root {
+    --ink: #11151c;
+    --text: #232a36;
+    --soft: #5b6472;
+    --rule: #d9dee6;
+    --wash: #f3f5f8;
+    --paper: #ffffff;
+    --unit: 8px;
+    /* ---- Product accent: the only part that changes per add-on ---- */
+    --accent: #f08a24;
+    --accent-ink: #9a4f08;
+    --accent-wash: #fdf1e3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font: 400 16px/1.6 "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-stretch: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 640px; margin: 0; padding: 0 2px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  a { color: var(--accent-ink); text-underline-offset: 3px; }
+
+  /* Titles are wider and heavier than the text, like the product logos. */
+  h1, h2, h3, .cap { color: var(--ink); font-stretch: 112%; letter-spacing: -.005em; }
+  h1 { margin: 0 0 10px; font-size: 27px; line-height: 1.18; font-weight: 800; }
+  .lead { margin-bottom: 18px; font-size: 17.5px; line-height: 1.5; color: var(--text); }
+
+  .note {
+    margin: 0 0 22px;
+    padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: var(--accent-wash);
+  }
+  .note p { margin: 0; }
+  .note b { color: var(--accent-ink); }
+
+  .clip {
+    margin: 0 0 14px;
+    background: var(--ink);
+    border-radius: 4px;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .clip video, .clip img { display: block; width: 100%; height: auto; }
+  .clip.film { position: relative; aspect-ratio: 16 / 9; margin-bottom: 8px; }
+  .clip.film iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  /* A stage of the work: a heavy rule, a title, one line of what it covers. */
+  .stage { margin: 44px 0 20px; padding-top: 14px; border-top: 3px solid var(--ink); }
+  .stage h2 { margin: 0 0 2px; font-size: 22px; line-height: 1.25; font-weight: 800; }
+  .stage p { margin: 0; color: var(--soft); }
+
+  .feature { margin: 0 0 30px; }
+  .cap {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 4px;
+    font-size: 17.5px;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  .cap::before {
+    content: "";
+    flex: none;
+    width: 9px; height: 9px;
+    background: var(--accent);
+    transform: translateY(-1px);
+  }
+  .feature > p { padding-left: 19px; }
+  .feature > p:last-child { margin-bottom: 0; }
+  .feature > .clip + .clip { margin-top: 14px; }
+
+  .states { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0; padding: 0 0 0 19px; list-style: none; font-size: 14.5px; }
+  .states li { display: inline-flex; align-items: center; gap: 7px; }
+  .states i { width: 11px; height: 11px; border-radius: 50%; }
+
+  h2.plain { margin: 40px 0 10px; font-size: 20px; line-height: 1.3; font-weight: 800; }
+  h3 { margin: 18px 0 2px; font-size: 16.5px; font-weight: 700; }
+  ul.list { margin: 0 0 14px; padding-left: 19px; max-width: 68ch; }
+  ul.list li { margin: 4px 0; padding-left: 2px; }
+  ul.list li::marker { color: var(--accent); }
+
+  /* Supported versions and systems, in one line. */
+  .versions { display: flex; flex-wrap: wrap; gap: 6px 26px; margin: 4px 0 14px; padding: 12px 16px; background: var(--wash); border-radius: 4px; }
+  .versions p { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 700; }
+  .versions p + p { color: var(--text); font-weight: 400; }
+  .versions svg { flex: none; color: #2f9a4c; }
+
+  /* Closing panel: the product's own world behind the way to buy it. */
+  .close {
+    position: relative;
+    margin: 44px 0 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--ink) url("media/world.jpg") center bottom / cover no-repeat;
+    color: #fff;
+  }
+  .close .in { padding: 34px 28px 30px; background: linear-gradient(180deg, rgba(17,21,28,.94) 0%, rgba(17,21,28,.86) 55%, rgba(17,21,28,.42) 100%); }
+  .close img.logo { display: block; width: 168px; height: auto; margin: 0 0 16px; }
+  .close h2 { margin: 0 0 6px; color: #fff; font-size: 23px; line-height: 1.22; font-weight: 800; }
+  .close p { margin: 0 0 22px; max-width: 44ch; color: #d5dae3; }
+  .close .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+  .close .meta { margin: 0; color: #d5dae3; font-size: 14px; }
+  .btn {
+    display: inline-block;
+    padding: 13px 22px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 700;
+    font-stretch: 112%;
+    line-height: 1;
+    text-decoration: none;
+  }
+  .btn:hover { background: #ffa040; }
+  .btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  .maker { margin: 0; color: var(--soft); font-size: 13.5px; }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 23px; }
+    .close .in { padding: 26px 18px 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Block out game levels on the grid.</h1>
+  <p class="lead">Blockd is a Blender add-on for level blockouts. Draw walls, floors, stairs and doorways, size them from your player's metrics, and export the meshes with collision to Unreal, Unity or Godot.</p>
+
+  <div class="note">
+    <p><b>Keep in mind.</b> Blockd makes blockout geometry: simple, measured meshes for testing a level in your engine. It needs Blender 4.2 LTS or later.</p>
+  </div>
+
+  <div class="clip film">
+    <iframe src="https://www.youtube-nocookie.com/embed/v2z-e21pQKE" title="Blockd demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
+  </div>
+
+  <div class="stage">
+    <h2>Draw</h2>
+    <p>Twenty shapes, drawn on the grid or against a wall.</p>
+  </div>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/01_fast_draw_room.jpg" src="media/01_fast_draw_room.mp4" muted loop playsinline preload="none" title="Drawing on the grid"></video></div>
+    <p class="cap">Drag, pull up, click</p>
+    <p>Drag a footprint, pull up the height and click. Shapes snap to the grid and to the corners of what is already in the scene.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/02_structural_room.jpg" src="media/02_structural_room.mp4" muted loop playsinline preload="none" title="A room in one drag"></video></div>
+    <div class="clip"><video poster="media/03_structural_walls.jpg" src="media/03_structural_walls.mp4" muted loop playsinline preload="none" title="Connected walls"></video></div>
+    <p class="cap">Rooms and connected walls</p>
+    <p>Room draws a floor and four walls in one drag. Connected Walls draws joined walls from corner to corner and closes the corners for you.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/04_vertical_wall_draw.jpg" src="media/04_vertical_wall_draw.mp4" muted loop playsinline preload="none" title="Drawing on walls"></video></div>
+    <p class="cap">On walls too</p>
+    <p>Ledges, pillars, facade pieces and ladders stand on the wall you draw them on, and you pull them out to the depth you want.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/05_complete_draw_details.jpg" src="media/05_complete_draw_details.mp4" muted loop playsinline preload="none" title="Switching shapes"></video></div>
+    <div class="clip"><img src="media/06_complete_shapes.jpg" alt="The 20 Blockd shapes, from walls to water" loading="lazy"></div>
+    <p class="cap">20 shapes</p>
+    <p>From walls, doorways and archways to spiral stairs, roofs, cover and water. Switch shapes with the number keys without leaving the tool.</p>
+  </section>
+
+  <div class="stage">
+    <h2>Edit</h2>
+    <p>Every piece keeps its parameters after you place it.</p>
+  </div>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/07_direct_handles.jpg" src="media/07_direct_handles.mp4" muted loop playsinline preload="none" title="Resize handles"></video></div>
+    <p class="cap">Resize in the viewport</p>
+    <p>Drag the arrows on any face to resize a shape, one grid cell at a time.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/08_editable.jpg" src="media/08_editable.mp4" muted loop playsinline preload="none" title="Editing pieces"></video></div>
+    <p class="cap">Change anything later</p>
+    <p>Change a wall's length, swap a door for a pointed arch, add steps. Hold Alt to change every selected piece at once.</p>
+  </section>
+
+  <div class="stage">
+    <h2>Measure</h2>
+    <p>The level is checked against your player before it leaves Blender.</p>
+  </div>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/09_gauges.jpg" src="media/09_gauges.mp4" muted loop playsinline preload="none" title="Step and jump gauges"></video></div>
+    <p class="cap">Step and jump gauges</p>
+    <p>Select a piece and a gauge beside it shows what the player can do with it.</p>
+    <ul class="states">
+      <li><i style="background:#3fae5a"></i>step up</li>
+      <li><i style="background:#e3b320"></i>jump up</li>
+      <li><i style="background:#d8483c"></i>out of reach</li>
+    </ul>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/10_player_scaled.jpg" src="media/10_player_scaled.mp4" muted loop playsinline preload="none" title="Player metrics"></video></div>
+    <div class="clip"><video poster="media/11_references.jpg" src="media/11_references.mp4" muted loop playsinline preload="none" title="Reference pieces"></video></div>
+    <p class="cap">Sized from your player</p>
+    <p>Enter your player's height, step, jump and slope once. Check Metrics selects the doors, stairs, ramps and cover that don't fit, and the player capsules and rulers follow the same numbers.</p>
+  </section>
+
+  <div class="stage">
+    <h2>Export</h2>
+    <p>Meshes, collision, pivots and colors, ready for the engine.</p>
+  </div>
+
+  <section class="feature">
+    <div class="clip"><img src="media/12_readable_tags.jpg" alt="Gameplay tags and their colors" loading="lazy"></div>
+    <p class="cap">Gameplay tags</p>
+    <p>Eleven tags, from walkable and cover to hazard and trigger, give each piece a gameplay meaning and a color. The colors carry into your engine.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/13_engine_ready.jpg" src="media/13_engine_ready.mp4" muted loop playsinline preload="none" title="Export"></video></div>
+    <p class="cap">Collision included</p>
+    <p>Export FBX or glTF with presets for Unreal, Unity and Godot. Collision is written for each engine, and the grid comes along as a texture.</p>
+  </section>
+
+  <section class="feature">
+    <div class="clip"><video poster="media/14_tested_unity.jpg" src="media/14_tested_unity.mp4" muted loop playsinline preload="none" title="The demo level in Unity 6"></video></div>
+    <p class="cap">Tested in Unity, Godot and Unreal</p>
+    <p>The demo level went into Unity 6 as one FBX: 322 meshes, each with its collider, tag colors and grid kept. In Godot and Unreal, solid pieces import with their collision.</p>
+  </section>
+
+  <h2 class="plain">Also in Blockd</h2>
+  <ul class="list">
+    <li>Pivots on any of 27 points of a piece, or on the 3D cursor for a door hinge</li>
+    <li>Live cutters that move with the piece they cut</li>
+    <li>Extend, to tile walls and floors with copies placed side by side</li>
+    <li>Bake to Static Mesh, and Mark as Kit Piece to add your pieces to the Asset Browser</li>
+    <li>Dimension labels for the selected pieces in the viewport</li>
+  </ul>
+
+  <h2 class="plain">In the download</h2>
+  <ul class="list">
+    <li>blockd-1.2.1.zip: the extension for Blender 4.2 LTS and later</li>
+    <li>Blockd User Guide (PDF)</li>
+    <li>Blockd Grid Kit: 32 ready-made grid pieces, including walls, floors, stairs, ramps and cover. Every piece stays editable with Blockd.</li>
+  </ul>
+
+  <h2 class="plain">Installation</h2>
+  <div class="versions">
+    <p><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>Blender 4.2 LTS to 5.3</p>
+    <p><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>macOS, Windows and Linux</p>
+  </div>
+  <p>Drop blockd-1.2.1.zip on the Blender window, or use Preferences &gt; Get Extensions &gt; Install from Disk. The User Guide has the details.</p>
+
+  <div class="close">
+    <div class="in">
+      <img class="logo" src="media/blockd_logo_orange-d.svg" alt="Blockd">
+      <h2>Block out your next level.</h2>
+      <p>Draw it, measure it against your player, and test it in your engine.</p>
+      <div class="row">
+        <a class="btn" href="https://superhivemarket.com/products/blockd" target="_top">Get Blockd</a>
+        <p class="meta">Blender 4.2 LTS to 5.3</p>
+      </div>
+    </div>
+  </div>
+  <p class="maker">Blockd is made by The Souk Galaxy.</p>
+
+</main>
+<script>
+  // Play each clip only while it is on screen.
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clips = document.querySelectorAll('.clip video');
+  if (still) {
+    clips.forEach(v => { v.controls = true; });
+  } else if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (e.isIntersecting) e.target.play().catch(() => { e.target.controls = true; });
+        else e.target.pause();
+      }
+    }, { threshold: 0.35 });
+    clips.forEach(v => io.observe(v));
+  }
+</script>
+</body>
+</html>

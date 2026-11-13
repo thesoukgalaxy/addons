@@ -139,6 +139,47 @@
     h1 { font-size: 23px; }
     .close .in { padding: 26px 18px 24px; }
   }
+
+  /* ---- Dark Blockd theme: the dusk sky and ground grid of the add-on's viewport ---- */
+  :root {
+    --ink: #ffffff; --text: #dfe5ee; --soft: #a3aec1; --wash: rgba(255,255,255,.06);
+    --accent: #f08a24; --accent-ink: #ffb265; --accent-wash: rgba(240,138,36,.13);
+    --sky: #1b2437; --sky2: #212c42; --line: rgba(255,255,255,.045);
+  }
+  html { background: transparent; }
+  body {
+    background-color: var(--sky);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px),
+      linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+    background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  main { padding: 34px 28px 30px; }
+  h1 { font-size: 30px; }
+  .lead { color: var(--text); }
+  .note { border-left-color: var(--accent); }
+  .clip { background: #0f1420; box-shadow: 0 0 0 1px rgba(255,255,255,.09); }
+  .band { margin: 30px -28px 0; padding: 4px 28px 30px; }
+  .clip.film { margin-left: -28px; margin-right: -28px; border-radius: 0; box-shadow: none; }
+  .band.b0 { background: rgba(255,255,255,.035); }
+  .band.b1 { background: rgba(8,12,22,.30); }
+  .band.plainband { padding-bottom: 6px; }
+  .band .stage { margin-top: 30px; border-top: 3px solid var(--accent); }
+  .band .feature:last-child { margin-bottom: 0; }
+  .stage p { color: var(--soft); }
+  ul.list li { color: var(--text); }
+  .versions svg, .versions .os svg { color: #62d383; }
+  .versions p + p { color: var(--text); }
+  .close { margin-top: 34px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+  .maker { color: var(--soft); }
+  @media (max-width: 520px) {
+    main { padding: 26px 16px 24px; }
+    .band { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+    .clip.film { margin-left: -16px; margin-right: -16px; }
+    h1 { font-size: 24px; }
+  }
 </style>
 </head>
 <body>
@@ -155,6 +196,7 @@
     <video width="1280" height="720" poster="media/00_level_build.jpg" src="media/00_level_build.mp4" muted loop playsinline preload="none" title="The demo level being assembled from Blockd pieces"></video>
   </div>
 
+  <div class="band b0">
   <div class="stage">
     <h2>Draw</h2>
     <p>Twenty shapes, drawn on the grid or against a wall.</p>
@@ -185,7 +227,9 @@
     <p class="cap">20 shapes</p>
     <p>From walls, doorways and archways to spiral stairs, roofs, cover and water. Switch shapes with the number keys or Tab without leaving the tool.</p>
   </section>
+  </div>
 
+  <div class="band b1">
   <div class="stage">
     <h2>Edit</h2>
     <p>Every piece keeps its parameters after you place it.</p>
@@ -202,7 +246,9 @@
     <p class="cap">Change anything later</p>
     <p>Change a wall's length, swap a door for a pointed arch, add steps. Hold Alt to change every selected piece at once.</p>
   </section>
+  </div>
 
+  <div class="band b0">
   <div class="stage">
     <h2>Measure</h2>
     <p>Check the level against your player before it leaves Blender.</p>
@@ -225,7 +271,9 @@
     <p class="cap">Sized from your player</p>
     <p>Enter your player's height, step, jump and slope once. Check Metrics selects the doors, stairs, ramps and cover that don't fit, and the player capsules and rulers follow the same numbers.</p>
   </section>
+  </div>
 
+  <div class="band b1">
   <div class="stage">
     <h2>Export</h2>
     <p>Meshes, collision, pivots and colors, ready for the engine.</p>
@@ -248,7 +296,9 @@
     <p class="cap">Tested in Unity, Godot and Unreal</p>
     <p>The demo level went into Unity 6 as one FBX: 322 meshes, 322 mesh colliders, with the tag colors and the grid kept. In Godot and Unreal, solid pieces import with their collision.</p>
   </section>
+  </div>
 
+  <div class="band plainband">
   <h2 class="plain">Also in Blockd</h2>
   <ul class="list">
     <li>Pivots on any of 27 points of a piece, or on the 3D cursor for a door hinge</li>
@@ -271,6 +321,7 @@
     <p><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>macOS, Windows and Linux</p>
   </div>
   <p>In Blender, open Preferences &gt; Get Extensions, choose Install from Disk and select blockd-1.2.1.zip. The User Guide has the details.</p>
+  </div>
 
   <div class="close">
     <div class="in">

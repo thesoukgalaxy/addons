@@ -176,14 +176,14 @@
   <section class="feature">
     <div class="clip"><video width="1280" height="668" poster="media/04_vertical_wall_draw.jpg" src="media/04_vertical_wall_draw.mp4" muted loop playsinline preload="none" title="Drawing on walls"></video></div>
     <p class="cap">On walls too</p>
-    <p>Ledges, pillars, facade pieces and ladders stand on the wall you draw them on, and you pull them out to the depth you want.</p>
+    <p>Ledges, pillars and facade pieces stand on the wall you draw them on, and you pull them out to the depth you want. Ladders and railings go on at their own thickness.</p>
   </section>
 
   <section class="feature">
     <div class="clip"><video width="1280" height="668" poster="media/05_complete_draw_details.jpg" src="media/05_complete_draw_details.mp4" muted loop playsinline preload="none" title="Switching shapes"></video></div>
     <div class="clip"><img src="media/06_complete_shapes.jpg" width="2000" height="1000" alt="The 20 Blockd shapes, from walls to water" loading="lazy"></div>
     <p class="cap">20 shapes</p>
-    <p>From walls, doorways and archways to spiral stairs, roofs, cover and water. Switch shapes with the number keys without leaving the tool.</p>
+    <p>From walls, doorways and archways to spiral stairs, roofs, cover and water. Switch shapes with the number keys or Tab without leaving the tool.</p>
   </section>
 
   <div class="stage">
@@ -205,13 +205,13 @@
 
   <div class="stage">
     <h2>Measure</h2>
-    <p>The level is checked against your player before it leaves Blender.</p>
+    <p>Check the level against your player before it leaves Blender.</p>
   </div>
 
   <section class="feature">
     <div class="clip"><video width="1280" height="668" poster="media/09_gauges.jpg" src="media/09_gauges.mp4" muted loop playsinline preload="none" title="Step and jump gauges"></video></div>
     <p class="cap">Step and jump gauges</p>
-    <p>Select a piece and a gauge beside it shows what the player can do with it.</p>
+    <p>Select a piece and a gauge beside it shows whether the player can step up onto it, jump up onto it, or neither.</p>
     <ul class="states">
       <li><i style="background:#3fae5a"></i>step up</li>
       <li><i style="background:#e3b320"></i>jump up</li>
@@ -239,14 +239,14 @@
 
   <section class="feature">
     <div class="clip"><video width="1280" height="668" poster="media/13_engine_ready.jpg" src="media/13_engine_ready.mp4" muted loop playsinline preload="none" title="Export"></video></div>
-    <p class="cap">Collision included</p>
-    <p>Export FBX or glTF with presets for Unreal, Unity and Godot. Collision is written for each engine, and the grid comes along as a texture.</p>
+    <p class="cap">Export with collision</p>
+    <p>Export FBX or glTF with presets for Unreal, Unity and Godot. Blockd writes UCX_ collision for Unreal and -col meshes for Godot, Unity builds its colliders on import, and the grid comes along as a texture.</p>
   </section>
 
   <section class="feature">
     <div class="clip"><video width="1280" height="668" poster="media/14_tested_unity.jpg" src="media/14_tested_unity.mp4" muted loop playsinline preload="none" title="The demo level in Unity 6"></video></div>
     <p class="cap">Tested in Unity, Godot and Unreal</p>
-    <p>The demo level went into Unity 6 as one FBX: 322 meshes, each with its collider, tag colors and grid kept. In Godot and Unreal, solid pieces import with their collision.</p>
+    <p>The demo level went into Unity 6 as one FBX: 322 meshes, 322 mesh colliders, with the tag colors and the grid kept. In Godot and Unreal, solid pieces import with their collision.</p>
   </section>
 
   <h2 class="plain">Also in Blockd</h2>
@@ -270,11 +270,11 @@
     <p><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>Blender 4.2 LTS to 5.3</p>
     <p><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>macOS, Windows and Linux</p>
   </div>
-  <p>Drop blockd-1.2.1.zip on the Blender window, or use Preferences &gt; Get Extensions &gt; Install from Disk. The User Guide has the details.</p>
+  <p>In Blender, open Preferences &gt; Get Extensions, choose Install from Disk and select blockd-1.2.1.zip. The User Guide has the details.</p>
 
   <div class="close">
     <div class="in">
-      <img class="logo" src="media/blockd_logo_orange-d.svg" alt="Blockd">
+      <img class="logo" src="media/blockd_logo_orange-d.svg" width="168" height="23" alt="Blockd">
       <h2>Block out your next level.</h2>
       <p>Draw it, measure it against your player, and test it in your engine.</p>
       <div class="row">
@@ -302,6 +302,10 @@
       }
     }, { threshold: 0.35 });
     clips.forEach(v => io.observe(v));
+    // Click or tap a clip to pause it, again to resume.
+    clips.forEach(v => { v.style.cursor = 'pointer'; v.addEventListener('click', () => { v.paused ? v.play().catch(() => {}) : v.pause(); }); });
+  } else {
+    clips.forEach(v => { v.controls = true; });
   }
 </script>
 </body>

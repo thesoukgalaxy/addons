@@ -181,6 +181,11 @@
     h1 { font-size: 24px; }
   }
   .aside { margin: -6px 0 24px; color: var(--soft); font-size: 15px; line-height: 1.55; }
+  /* Plain: no marker squares, no tinted strip, no tick icons. */
+  .cap::before { display: none; }
+  .feature > p, .states { padding-left: 0; }
+  .versions { padding: 0; background: none; gap: 2px 22px; }
+  .versions svg { display: none; }
 </style>
 </head>
 <body>

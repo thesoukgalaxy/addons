@@ -140,6 +140,31 @@
     h1 { font-size: 23px; }
     .close .in { padding: 26px 18px 24px; }
   }
+  /* ---- Draw-a-block panel ---- */
+  .try { margin: 0 0 22px; border-radius: 4px; overflow: hidden; background: var(--ink); }
+  .try .stage { position: relative; line-height: 0; }
+  .try canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; touch-action: none; cursor: crosshair; }
+  .try.locked canvas { touch-action: auto; cursor: default; }
+  .try .go { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 11px 18px; border: 0; border-radius: 3px; background: var(--accent); color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1; }
+  .try .go:hover { background: #ffa040; }
+  .try .stop { position: absolute; top: 10px; right: 10px; }
+  .try:not(.locked) .go, .try.locked #done, .try:not(.touch) #done { display: none; }
+  .try .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px; background: #1a202b; }
+  .try .shapes, .try .acts { display: flex; gap: 4px; }
+  .try .acts { margin-left: auto; }
+  .try button {
+    appearance: none; border: 1px solid #343d4d; border-radius: 3px; background: #232b38; color: #e6e9ee;
+    padding: 7px 11px; font: 600 13.5px/1 "Archivo", system-ui, sans-serif; cursor: pointer;
+  }
+  .try button kbd { margin-right: 6px; color: #8e98a8; font: inherit; font-weight: 500; }
+  .try button:hover { background: #2c3544; }
+  .try button[aria-pressed="true"] { border-color: #5b8dd9; background: #3d6fbe; color: #fff; }
+  .try button[aria-pressed="true"] kbd { color: #cfe0fa; }
+  .try button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .try button:disabled { opacity: .45; cursor: default; }
+  .try .hint { flex: 1 1 100%; margin: 0; color: #b9c1cf; font-size: 14px; line-height: 1.4; }
+  .try .hint b { color: #fff; font-weight: 600; }
+  @media (max-width: 520px) { .try canvas { aspect-ratio: 4 / 3; } .try button { padding: 7px 9px; } .try button kbd { display: none; } }
 </style>
 </head>
 <body>
@@ -147,6 +172,28 @@
 
   <h1>Block out game levels on the grid.</h1>
   <p class="lead">Blockd is a Blender add-on for level blockouts. Draw walls, floors, stairs and doorways, size them from your player's metrics, and export the meshes with collision to Unreal, Unity or Godot.</p>
+
+  <section class="try" aria-label="Try the Blockd drawing gesture">
+    <div class="stage">
+      <canvas id="bk" width="1664" height="936" role="img" aria-label="A grid you can draw blockout pieces on: drag a footprint, move up to set the height, then click."></canvas>
+      <button type="button" class="go" id="go">Tap to draw</button>
+      <button type="button" class="stop" id="done">Done</button>
+    </div>
+    <div class="bar">
+      <div class="shapes" role="group" aria-label="Shape">
+        <button type="button" data-shape="block" aria-pressed="true"><kbd>1</kbd>Block</button>
+        <button type="button" data-shape="wall" aria-pressed="false"><kbd>2</kbd>Wall</button>
+        <button type="button" data-shape="floor" aria-pressed="false"><kbd>3</kbd>Floor</button>
+        <button type="button" data-shape="stairs" aria-pressed="false"><kbd>4</kbd>Stairs</button>
+      </div>
+      <div class="acts">
+        <button type="button" id="undo" disabled>Undo</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+      <p class="hint" id="hint" aria-live="polite"><b>Try it.</b> Drag on the grid to set the footprint.</p>
+      <p class="hint" style="color:#8e98a8;font-size:13px;">A sketch of the drawing gesture, running in this page. In Blender, Blockd has 20 shapes and every piece stays editable.</p>
+    </div>
+  </section>
 
   <div class="note">
     <p><b>Keep in mind.</b> Blockd makes blockout geometry: simple, measured meshes for testing a level in your engine. It needs Blender 4.2 LTS or later.</p>
@@ -302,6 +349,178 @@
     }, { threshold: 0.35 });
     clips.forEach(v => io.observe(v));
   }
+</script>
+<script>
+(() => {
+  const cv = document.getElementById('bk'), g = cv.getContext('2d');
+  const hint = document.getElementById('hint'), undoBtn = document.getElementById('undo');
+  const GRID = 0.5, STEP = 0.25, JUMP = 1.2, WALL_T = 0.25, FLOOR_T = 0.25, MAXH = 5;
+  const CX = 0.866, CY = 0.44, CZ = 0.86;           // axonometric view, looking from +x +y
+  const NAMES = { block: 'Block', wall: 'Wall', floor: 'Floor', stairs: 'Stairs' };
+  const START = () => ([
+    { shape: 'wall', x0: 1, y0: 0.75, x1: 7, y1: 1, z: 3 },
+    { shape: 'wall', x0: 0.75, y0: 0.75, x1: 1, y1: 5, z: 3 },
+    { shape: 'block', x0: 4.5, y0: 2.5, x1: 6.5, y1: 3.5, z: 1 },
+  ]);
+  let pieces = START(), shape = 'block', phase = 'idle', draft = null, selected = pieces.length - 1;
+  let W = 0, H = 0, S = 1, OX = 0, OY = 0, DPR = 1, anchorY = 0, ptr = { x: 0, y: 0 }, moved = false;
+
+  const snap = v => Math.round(v / GRID) * GRID;
+  const P = (x, y, z = 0) => [OX + (x - y) * CX * S, OY + (x + y) * CY * S - z * CZ * S];
+  const ground = (sx, sy) => { const a = (sx - OX) / (CX * S), b = (sy - OY) / (CY * S); return [(a + b) / 2, (b - a) / 2]; };
+
+  function fit() {
+    const r = cv.getBoundingClientRect();
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.round(r.width); H = Math.round(r.height);
+    cv.width = W * DPR; cv.height = H * DPR;
+    S = W / 15.5;                                   // metres across the view
+    OX = W * 0.47; OY = H * 0.30 - 1.5 * CY * S;
+    draw();
+  }
+
+  // ---- geometry of a piece: a list of boxes ----
+  function boxes(p) {
+    if (p.shape !== 'stairs') return [{ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y1, z0: 0, z1: p.z }];
+    const n = Math.max(1, Math.round(p.z / STEP)), out = [];
+    const alongX = (p.x1 - p.x0) >= (p.y1 - p.y0), len = alongX ? p.x1 - p.x0 : p.y1 - p.y0, d = len / n;
+    for (let i = 0; i < n; i++) {
+      const k = p.up > 0 ? i : n - 1 - i, a = (alongX ? p.x0 : p.y0) + k * d, z1 = (i + 1) * (p.z / n);
+      out.push(alongX ? { x0: a, x1: a + d, y0: p.y0, y1: p.y1, z0: 0, z1 } : { y0: a, y1: a + d, x0: p.x0, x1: p.x1, z0: 0, z1 });
+    }
+    return out;
+  }
+  const poly = (pts, fill, stroke, lw = 1) => {
+    g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath();
+    if (fill) { g.fillStyle = fill; g.fill(); }
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+  };
+  const seg = (a, b) => { g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); };
+  const ticks = (a, b) => { const out = []; for (let v = Math.ceil(a + 1e-6); v < b - 1e-6; v++) out.push(v); return out; };
+
+  function drawBox(b, col) {
+    const { x0, y0, x1, y1, z0, z1 } = b;
+    poly([P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)], col.sx);
+    poly([P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)], col.sy);
+    poly([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], col.top);
+    g.beginPath(); g.strokeStyle = col.line; g.lineWidth = 1;   // world-space grid, like Blockd's material
+    for (const x of ticks(x0, x1)) { seg(P(x, y0, z1), P(x, y1, z1)); seg(P(x, y1, z0), P(x, y1, z1)); }
+    for (const y of ticks(y0, y1)) { seg(P(x0, y, z1), P(x1, y, z1)); seg(P(x1, y, z0), P(x1, y, z1)); }
+    for (const z of ticks(z0, z1)) { seg(P(x1, y0, z), P(x1, y1, z)); seg(P(x0, y1, z), P(x1, y1, z)); }
+    g.stroke();
+  }
+  function outline(p, color, lw) {
+    const z = p.z, { x0, y0, x1, y1 } = p;
+    g.beginPath(); g.strokeStyle = color; g.lineWidth = lw; g.lineJoin = 'round';
+    if (p.shape === 'stairs') { for (const b of boxes(p)) { seg(P(b.x0, b.y0, b.z1), P(b.x1, b.y0, b.z1)); seg(P(b.x1, b.y0, b.z1), P(b.x1, b.y1, b.z1)); seg(P(b.x1, b.y1, b.z1), P(b.x0, b.y1, b.z1)); seg(P(b.x0, b.y1, b.z1), P(b.x0, b.y0, b.z1)); } }
+    else { const hull = [P(x0, y0, z), P(x1, y0, z), P(x1, y0, 0), P(x1, y1, 0), P(x0, y1, 0), P(x0, y1, z)]; hull.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); seg(P(x1, y1, z), P(x1, y0, z)); seg(P(x1, y1, z), P(x0, y1, z)); seg(P(x1, y1, z), P(x1, y1, 0)); }
+    g.stroke();
+  }
+  const SOLID = { top: '#d3d6db', sx: '#9ea4ad', sy: '#b6bbc3', line: 'rgba(46,56,72,.34)' };
+  const GHOST = { top: 'rgba(240,138,36,.50)', sx: 'rgba(214,112,20,.50)', sy: 'rgba(228,124,28,.50)', line: 'rgba(255,214,170,.55)' };
+
+  function gauge(h) { return h <= STEP + 1e-6 ? ['#4fc06c', 'step up'] : h <= JUMP + 1e-6 ? ['#e9bd2c', 'jump up'] : ['#e2584c', 'too high to jump']; }
+  function label(p, at, live) {
+    const w = (p.x1 - p.x0), d = (p.y1 - p.y0), f = v => v.toFixed(2);
+    let l2 = p.shape === 'wall' ? `Length ${f(Math.max(w, d))}  Thickness ${f(WALL_T)}  Height ${f(p.z)}`
+      : p.shape === 'stairs' ? `Run ${f(Math.max(w, d))}  Width ${f(Math.min(w, d))}  Height ${f(p.z)}`
+      : `Width ${f(w)}  Depth ${f(d)}  Height ${f(p.z)}`;
+    const l1 = p.shape === 'stairs' ? `Stairs · ${Math.max(1, Math.round(p.z / STEP))} steps of ${f(STEP)} m` : `${NAMES[p.shape]} · grid ${GRID} m`;
+    const fs = W < 520 ? 11.5 : 13;
+    g.font = `600 ${fs}px Archivo, system-ui, sans-serif`; g.textBaseline = 'top';
+    const [gc, gt] = gauge(p.z), showG = p.shape === 'block' && (live || true);
+    const tw = Math.max(g.measureText(l1).width, g.measureText(l2).width, showG ? g.measureText(gt).width + 16 : 0);
+    let x = at[0] + 16, y = at[1] - 6; const bh = (showG ? 3 : 2) * (fs + 5) + 8;
+    if (x + tw + 16 > W) x = at[0] - tw - 28; if (y + bh > H - 4) y = H - bh - 4; if (y < 4) y = 4;
+    if (W < 520) { x = 14; y = 12; }               // small screens: keep the label off the piece
+    g.fillStyle = 'rgba(17,21,28,.78)'; g.beginPath(); g.roundRect(x - 8, y - 6, tw + 16, bh, 3); g.fill();
+    g.fillStyle = '#fff'; g.fillText(l1, x, y);
+    g.fillStyle = '#ffab52'; g.fillText(l2, x, y + fs + 5);
+    if (showG) { g.fillStyle = gc; g.beginPath(); g.arc(x + 5, y + 2 * (fs + 5) + fs / 2, 4.5, 0, 7); g.fill(); g.fillText(gt, x + 16, y + 2 * (fs + 5)); }
+  }
+
+  function draw() {
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    g.fillStyle = '#737d8a'; g.fillRect(0, 0, W, H);                 // ground
+    g.beginPath(); g.strokeStyle = 'rgba(38,46,60,.20)'; g.lineWidth = 1;
+    for (let v = -30; v <= 40; v += GRID) { if (v % 1) { seg(P(v, -30), P(v, 40)); seg(P(-30, v), P(40, v)); } }
+    g.stroke();
+    g.beginPath(); g.strokeStyle = 'rgba(30,38,52,.55)'; g.lineWidth = 1.4;
+    for (let v = -30; v <= 40; v++) { seg(P(v, -30), P(v, 40)); seg(P(-30, v), P(40, v)); }
+    g.stroke();
+    const sky = g.createLinearGradient(0, 0, 0, H * 0.42);           // dusk haze toward the far side
+    sky.addColorStop(0, 'rgba(40,54,84,1)'); sky.addColorStop(0.45, 'rgba(62,80,112,.72)'); sky.addColorStop(1, 'rgba(98,112,134,0)');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H * 0.42);
+
+    const all = pieces.map((p, i) => ({ p, i })); if (draft) all.push({ p: draft, i: -1 });
+    g.fillStyle = 'rgba(24,31,46,.34)';                               // shadows on the ground
+    for (const { p } of all) { if (p.z <= 0) continue; const dx = p.z * 0.55, dy = p.z * 0.16, { x0, y0, x1, y1 } = p;
+      poly([P(x0, y0), P(x1, y0), P(x1 + dx, y0 + dy), P(x1 + dx, y1 + dy), P(x0 + dx, y1 + dy), P(x0, y1)], 'rgba(24,31,46,.30)'); }
+    const list = [];
+    for (const { p, i } of all) for (const b of boxes(p)) list.push({ b, ghost: i < 0 });
+    list.sort((a, b) => (a.b.x0 + a.b.x1 + a.b.y0 + a.b.y1) - (b.b.x0 + b.b.x1 + b.b.y0 + b.b.y1) || a.b.z1 - b.b.z1);
+    for (const it of list) drawBox(it.b, it.ghost ? GHOST : SOLID);
+    if (draft) { outline(draft, '#ffb060', 2); label(draft, [ptr.x, ptr.y], true); }
+    else if (selected >= 0 && pieces[selected]) { const p = pieces[selected]; outline(p, '#f08a24', 2); label(p, P(p.x1, p.y0, p.z), false); }
+  }
+
+  // ---- interaction: drag the footprint, move up for the height, click ----
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const say = html => { hint.innerHTML = html; };
+  const idleHint = () => say(shape === 'wall' ? 'Drag on the grid to set the wall’s length.' : 'Drag on the grid to set the footprint.');
+
+  function footprint(a, b) {
+    let x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+    if (shape === 'wall') {
+      if (x1 - x0 >= y1 - y0) { y0 = a[1] - WALL_T / 2; y1 = a[1] + WALL_T / 2; x1 = Math.max(x1, x0 + GRID); }
+      else { x0 = a[0] - WALL_T / 2; x1 = a[0] + WALL_T / 2; y1 = Math.max(y1, y0 + GRID); }
+    } else { x1 = Math.max(x1, x0 + GRID); y1 = Math.max(y1, y0 + GRID); }
+    const alongX = (x1 - x0) >= (y1 - y0);
+    return { shape, x0, y0, x1, y1, z: shape === 'floor' ? FLOOR_T : 0.02, up: alongX ? (b[0] >= a[0] ? 1 : -1) : (b[1] >= a[1] ? 1 : -1) };
+  }
+  let startG = null;
+  const panel = cv.closest('.try');
+  if (matchMedia('(pointer: coarse)').matches) panel.classList.add('touch', 'locked');
+  document.getElementById('go').addEventListener('click', () => { panel.classList.remove('locked'); idleHint(); });
+  document.getElementById('done').addEventListener('click', () => { panel.classList.add('locked'); draft = null; phase = 'idle'; say('Tap <b>Tap to draw</b> to draw again.'); draw(); });
+  cv.addEventListener('pointerdown', e => {
+    if (panel.classList.contains('locked')) return;
+    ptr = pos(e); moved = false; cv.setPointerCapture(e.pointerId);
+    if (phase === 'idle') { const q = ground(ptr.x, ptr.y); startG = [snap(q[0]), snap(q[1])]; draft = footprint(startG, startG); phase = 'foot'; selected = -1; draw(); }
+    else if (phase === 'height') { anchorY = e.pointerType === 'mouse' ? anchorY : ptr.y + (draft.z > 0.1 ? draft.z * CZ * S : 0); }
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', e => {
+    ptr = pos(e); moved = true;
+    if (phase === 'foot') { const q = ground(ptr.x, ptr.y); draft = footprint(startG, [snap(q[0]), snap(q[1])]); draw(); }
+    else if (phase === 'height') { draft.z = Math.min(MAXH, Math.max(STEP, Math.round(((anchorY - ptr.y) / (CZ * S)) / STEP) * STEP)); draw(); }
+  });
+  function place() { pieces.push(draft); selected = pieces.length - 1; draft = null; phase = 'idle'; undoBtn.disabled = false;
+    say(pieces[selected].shape === 'block' ? `Placed. The gauge shows what your player can do with it: <b>${gauge(pieces[selected].z)[1]}</b>. Draw another.` : 'Placed. Draw another, or switch shape with the number keys.'); draw(); }
+  cv.addEventListener('pointerup', e => {
+    ptr = pos(e);
+    if (phase === 'foot') {
+      if (shape === 'floor') { place(); return; }
+      phase = 'height'; anchorY = ptr.y; draft.z = STEP;
+      say(e.pointerType === 'mouse' ? '<b>Move up</b> to set the height, then <b>click</b>.' : '<b>Drag up</b> to set the height, then lift your finger.'); draw();
+    } else if (phase === 'height') { if (e.pointerType === 'mouse' || moved) place(); }
+  });
+  cv.addEventListener('pointercancel', () => { draft = null; phase = 'idle'; idleHint(); draw(); });
+
+  function setShape(s) { shape = s; draft = null; phase = 'idle';
+    document.querySelectorAll('.try [data-shape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.shape === s))); idleHint(); draw(); }
+  document.querySelectorAll('.try [data-shape]').forEach(b => b.addEventListener('click', () => setShape(b.dataset.shape)));
+  undoBtn.addEventListener('click', () => { pieces.pop(); selected = pieces.length - 1; undoBtn.disabled = pieces.length <= START().length; draft = null; phase = 'idle'; idleHint(); draw(); });
+  document.getElementById('clear').addEventListener('click', () => { pieces = []; selected = -1; undoBtn.disabled = true; draft = null; phase = 'idle'; idleHint(); draw(); });
+  addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea')) return;
+    const s = { '1': 'block', '2': 'wall', '3': 'floor', '4': 'stairs' }[e.key]; if (s) setShape(s);
+    if (e.key === 'Escape' && phase !== 'idle') { draft = null; phase = 'idle'; idleHint(); draw(); }
+  });
+  new ResizeObserver(fit).observe(cv);
+  document.fonts && document.fonts.ready.then(draw);
+  fit();
+})();
 </script>
 </body>
 </html>

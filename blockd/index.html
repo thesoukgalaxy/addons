@@ -142,7 +142,7 @@
   }
   /* ---- Draw-a-block panel ---- */
   .try { margin: 0 0 22px; border-radius: 4px; overflow: hidden; background: var(--ink); }
-  .try .stage { position: relative; line-height: 0; }
+  .try .board { position: relative; line-height: 0; }
   .try canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; touch-action: none; cursor: crosshair; }
   .try.locked canvas { touch-action: auto; cursor: default; }
   .try .go { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 11px 18px; border: 0; border-radius: 3px; background: var(--accent); color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1; }
@@ -174,7 +174,7 @@
   <p class="lead">Blockd is a Blender add-on for level blockouts. Draw walls, floors, stairs and doorways, size them from your player's metrics, and export the meshes with collision to Unreal, Unity or Godot.</p>
 
   <section class="try" aria-label="Try the Blockd drawing gesture">
-    <div class="stage">
+    <div class="board">
       <canvas id="bk" width="1664" height="936" role="img" aria-label="A grid you can draw blockout pieces on: drag a footprint, move up to set the height, then click."></canvas>
       <button type="button" class="go" id="go">Tap to draw</button>
       <button type="button" class="stop" id="done">Done</button>

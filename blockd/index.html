@@ -290,6 +290,8 @@
   // Play each clip only while it is on screen.
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const clips = document.querySelectorAll('.clip video');
+  // Some browsers stop on the last frame despite the loop attribute: restart by hand.
+  clips.forEach(v => v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); }));
   if (still) {
     clips.forEach(v => { v.controls = true; });
   } else if ('IntersectionObserver' in window) {

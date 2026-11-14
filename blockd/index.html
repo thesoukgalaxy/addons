@@ -185,10 +185,15 @@
     h1 { font-size: 24px; }
   }
   .aside { margin: -6px 0 24px; color: var(--soft); font-size: 15px; line-height: 1.55; }
+  /* Sale strip: remove the element and this rule when the sale ends. */
+  .sale { margin: -34px -28px 28px; padding: 11px 28px; max-width: none; background: var(--accent); color: #1a1206; font-size: 16px; line-height: 1.35; font-weight: 800; font-stretch: 112%; }
+  @media (max-width: 520px) { .sale { margin: -26px -16px 22px; padding: 10px 16px; font-size: 15px; } }
 </style>
 </head>
 <body>
 <main>
+
+  <p class="sale">Launch sale extended: 50% off until November 26.</p>
 
   <h1>Block out game levels on the grid.</h1>
   <p class="lead">Blockd is a Blender add-on for level blockouts. Draw walls, floors, stairs and doorways, size them from your player's metrics, and export the meshes with collision to Unreal, Unity or Godot.</p>

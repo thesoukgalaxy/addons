@@ -341,14 +341,16 @@
 
 </main>
 <script>
-  // Play each clip only while it is on screen.
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Play each clip while it is on screen, like the GIFs these replaced. Click a clip to pause it.
   const clips = document.querySelectorAll('.clip video');
-  // Some browsers stop on the last frame despite the loop attribute: restart by hand.
-  clips.forEach(v => v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); }));
-  if (still) {
-    clips.forEach(v => { v.controls = true; });
-  } else if ('IntersectionObserver' in window) {
+  clips.forEach(v => {
+    v.muted = true;
+    // Some browsers stop on the last frame despite the loop attribute: restart by hand.
+    v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); });
+    v.style.cursor = 'pointer';
+    v.addEventListener('click', () => { v.paused ? v.play().catch(() => {}) : v.pause(); });
+  });
+  if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(entries => {
       for (const e of entries) {
         if (e.isIntersecting) e.target.play().catch(() => { e.target.controls = true; });
@@ -356,8 +358,6 @@
       }
     }, { threshold: 0.35 });
     clips.forEach(v => io.observe(v));
-    // Click or tap a clip to pause it, again to resume.
-    clips.forEach(v => { v.style.cursor = 'pointer'; v.addEventListener('click', () => { v.paused ? v.play().catch(() => {}) : v.pause(); }); });
   } else {
     clips.forEach(v => { v.controls = true; });
   }
